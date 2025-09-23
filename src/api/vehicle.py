@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from framework.db import get_db
-from models.Vehicle import Vehicle, VehicleCreate
+from models.vehicle import Vehicle, VehicleCreate
 from datetime import datetime, UTC
 
 router = APIRouter()
