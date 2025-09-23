@@ -181,6 +181,7 @@ def update_vehicle_partial(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
 @router.delete("/api/v1/Vehicle/{id}")
 def delete_vehicle(id: int, db: Session = Depends(get_db)):
     """

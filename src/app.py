@@ -104,5 +104,5 @@ if os.getenv("TESTING") != "true":
 # Register routes
 app.include_router(health.router, tags=["Health"])
 app.include_router(info.router, tags=["Info"])
-app.include_router(autolog.router, tags=["autolog"])
+app.include_router(vehicle.router, tags=["vehicle"])
 app.mount("/autolog/test", StaticFiles(directory="static", html=True), name="test")
