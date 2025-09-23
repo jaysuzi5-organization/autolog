@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vehicle Test Page</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Vehicle Management</h1>
+
+  <h2>Add Vehicle</h2>
+  <form id="vehicleForm" autocomplete="off">
+    <label>
+      Year:
+      <input type="number" id="year" required>
+    </label>
+    <label>
+      Make:
+      <input type="text" id="make" required>
+    </label>
+    <label>
+      Model:
+      <input type="text" id="model" required>
+    </label>
+    <label>
+      Color:
+      <input type="text" id="color">
+    </label>
+    <label>
+      VIN Number:
+      <input type="text" id="vin_number">
+    </label>
+    <label>
+      License Plate Number:
+      <input type="text" id="license_plate_number">
+    </label>
+    <label>
+      Registration Number:
+      <input type="text" id="registration_number">
+    </label>
+    <label>
+      State:
+      <input type="text" id="state">
+    </label>
+    <label>
+      Purchased Date:
+      <input type="date" id="purchased_date">
+    </label>
+    <label>
+      Purchased Price:
+      <input type="number" step="0.01" id="purchased_price">
+    </label>
+    <label>
+      Purchased Odometer:
+      <input type="number" id="purchased_odometer">
+    </label>
+    <label>
+      Dealer Name:
+      <input type="text" id="dealer_name">
+    </label>
+    <label>
+      Sold Date:
+      <input type="date" id="sold_date">
+    </label>
+    <label>
+      Sold Price:
+      <input type="number" step="0.01" id="sold_price">
+    </label>
+    <label>
+      Sold Odometer:
+      <input type="number" id="sold_odometer">
+    </label>
+    <button type="submit">Add</button>
+  </form>
+  <div id="responseMessage"></div>
+
+  <h2>Vehicle List</h2>
+
+  <div id="paginationControls" aria-label="Pagination controls">
+    <button id="prevPage" disabled>Previous</button>
+    <span>Page <span id="currentPage">1</span></span>
+    <button id="nextPage">Next</button>
+    <label for="pageSizeSelect" style="margin-left: auto; font-weight:600; font-size:0.9rem; color: var(--blue-dark);">
+      Items per page:
+    </label>
+    <select id="pageSizeSelect" aria-label="Select number of items per page">
+      <option value="5">5</option>
+      <option value="10" selected>10</option>
+      <option value="20">20</option>
+      <option value="50">50</option>
+    </select>
+  </div>
+
+  <table id="vehicleTable" aria-label="vehicle list table">
+    <thead>
+      <tr>
+        <th>ID</th><th>Year</th><th>Make</th><th>Model</th>
+        <th>Color</th><th>VIN</th><th>License Plate</th>
+        <th>Registration #</th><th>State</th>
+        <th>Purchased Date</th><th>Purchased Price</th><th>Purchased Odometer</th>
+        <th>Dealer</th>
+        <th>Sold Date</th><th>Sold Price</th><th>Sold Odometer</th>
+        <th>Create Date</th><th>Update Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiBase = '/api/v1/vehicles';
+    const responseMessage = document.getElementById('responseMessage');
+    const tbody = document.querySelector('#vehicleTable tbody');
+    const currentPageSpan = document.getElementById('currentPage');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+    let currentPage = 1;
+
+    function getPageSize() {
+      return Number(pageSizeSelect.value);
+    }
+
+    async function loadVehicles(page = 1) {
+      responseMessage.textContent = '';
+      responseMessage.className = '';
+
+      const pageSize = getPageSize();
+
+      try {
+        const res = await fetch(`${apiBase}?page=${page}&limit=${pageSize}`);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+
+        tbody.innerHTML = '';
+
+        if (data.length === 0 && page > 1) {
+          currentPage = page - 1;
+          updatePaginationButtons();
+          loadVehicles(currentPage);
+          return;
+        }
+
+        data.forEach(vehicle => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${vehicle.id}</td>
+              <td>${vehicle.year}</td>
+              <td>${vehicle.make}</td>
+              <td>${vehicle.model}</td>
+              <td>${vehicle.color ?? ''}</td>
+              <td>${vehicle.vin_number ?? ''}</td>
+              <td>${vehicle.license_plate_number ?? ''}</td>
+              <td>${vehicle.registration_number ?? ''}</td>
+              <td>${vehicle.state ?? ''}</td>
+              <td>${vehicle.purchased_date ?? ''}</td>
+              <td>${vehicle.purchased_price ?? ''}</td>
+              <td>${vehicle.purchased_odometer ?? ''}</td>
+              <td>${vehicle.dealer_name ?? ''}</td>
+              <td>${vehicle.sold_date ?? ''}</td>
+              <td>${vehicle.sold_price ?? ''}</td>
+              <td>${vehicle.sold_odometer ?? ''}</td>
+              <td>${vehicle.create_date ? new Date(vehicle.create_date).toLocaleString() : ''}</td>
+              <td>${vehicle.update_date ? new Date(vehicle.update_date).toLocaleString() : ''}</td>
+            </tr>
+          `;
+        });
+
+        currentPage = page;
+        currentPageSpan.textContent = currentPage;
+        updatePaginationButtons();
+
+      } catch (err) {
+        responseMessage.textContent = 'Failed to load vehicles: ' + err.message;
+        responseMessage.classList.add('error');
+      }
+    }
+
+    function updatePaginationButtons() {
+      prevPageBtn.disabled = currentPage <= 1;
+    }
+
+    prevPageBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        loadVehicles(currentPage - 1);
+      }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+      loadVehicles(currentPage + 1);
+    });
+
+    pageSizeSelect.addEventListener('change', () => {
+      currentPage = 1;
+      loadVehicles(currentPage);
+    });
+
+    document.getElementById('vehicleForm').addEventListener('submit', e => {
+      e.preventDefault();
+      responseMessage.textContent = '';
+      responseMessage.className = '';
+
+      const vehicle = {
+        year: parseInt(document.getElementById('year').value, 10),
+        make: document.getElementById('make').value.trim(),
+        model: document.getElementById('model').value.trim(),
+        color: document.getElementById('color').value.trim() || null,
+        vin_number: document.getElementById('vin_number').value.trim() || null,
+        license_plate_number: document.getElementById('license_plate_number').value.trim() || null,
+        registration_number: document.getElementById('registration_number').value.trim() || null,
+        state: document.getElementById('state').value.trim() || null,
+        purchased_date: document.getElementById('purchased_date').value || null,
+        purchased_price: document.getElementById('purchased_price').value || null,
+        purchased_odometer: document.getElementById('purchased_odometer').value || null,
+        dealer_name: document.getElementById('dealer_name').value.trim() || null,
+        sold_date: document.getElementById('sold_date').value || null,
+        sold_price: document.getElementById('sold_price').value || null,
+        sold_odometer: document.getElementById('sold_odometer').value || null,
+      };
+
+      fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vehicle)
+      })
+      .then(async res => {
+        const contentType = res.headers.get('content-type') || '';
+        let data;
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        if (res.status >= 400) {
+          responseMessage.textContent = `Error ${res.status}: ` + (typeof data === 'string' ? data : JSON.stringify(data));
+          responseMessage.classList.add('error');
+        } else {
+          responseMessage.textContent = `Success ${res.status}: vehicle added.`;
+          responseMessage.classList.add('success');
+          document.getElementById('vehicleForm').reset();
+          loadVehicles(currentPage);
+        }
+      })
+      .catch(err => {
+        responseMessage.textContent = 'Network or server error: ' + err.message;
+        responseMessage.classList.add('error');
+      });
+    });
+
+    // Initial load
+    loadVehicles(currentPage);
+  </script>
+</body>
+</html>

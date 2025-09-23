@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from framework.db import get_db
-from models.autolog import Autolog, AutologCreate
+from models.Vehicle import Vehicle, VehicleCreate
 from datetime import datetime, UTC
 
 router = APIRouter()
@@ -19,14 +19,14 @@ def serialize_sqlalchemy_obj(obj):
     return {column.name: getattr(obj, column.name) for column in obj.__table__.columns}
 
 
-@router.get("/api/v1/autolog")
-def list_autolog(
+@router.get("/api/v1/Vehicle")
+def list_vehicle(
     page: int = Query(1, ge=1, description="Page number to retrieve"),
     limit: int = Query(10, ge=1, le=100, description="Number of records per page"),
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve a paginated list of Autolog records.
+    Retrieve a paginated list of Vehicle records.
 
     Args:
         page (int): Page number starting from 1.
@@ -34,34 +34,34 @@ def list_autolog(
         db (Session): SQLAlchemy database session.
 
     Returns:
-        list[dict]: A list of serialized Autolog records.
+        list[dict]: A list of serialized Vehicle records.
     """
     try:
         offset = (page - 1) * limit
-        autolog_records = db.query(Autolog).offset(offset).limit(limit).all()
-        return [serialize_sqlalchemy_obj(item) for item in autolog_records]
+        vehicle_records = db.query(Vehicle).offset(offset).limit(limit).all()
+        return [serialize_sqlalchemy_obj(item) for item in vehicle_records]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/api/v1/autolog")
+@router.post("/api/v1/Vehicle")
 def create_record(
-    autolog_data: AutologCreate = Body(..., description="Data for the new record"),
+    vehicle_data: VehicleCreate = Body(..., description="Data for the new record"),
     db: Session = Depends(get_db)
 ):
     """
-    Create a new Autolog record.
+    Create a new Vehicle record.
 
     Args:
-        autolog_data (AutologCreate): Data model for the record to create.
+        vehicle_data (VehicleCreate): Data model for the record to create.
         db (Session): SQLAlchemy database session.
 
     Returns:
-        dict: The newly created Autolog record.
+        dict: The newly created Vehicle record.
     """
     try:
-        data = autolog_data.model_dump(exclude_unset=True)
-        new_record = Autolog(**data)
+        data = vehicle_data.model_dump(exclude_unset=True)
+        new_record = Vehicle(**data)
         new_record.create_date = datetime.now(UTC)
         new_record.update_date = datetime.now(UTC)
 
@@ -76,25 +76,25 @@ def create_record(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/api/v1/autolog/{id}")
-def get_autolog_by_id(id: int, db: Session = Depends(get_db)):
+@router.get("/api/v1/Vehicle/{id}")
+def get_vehicle_by_id(id: int, db: Session = Depends(get_db)):
     """
-    Retrieve a single Autolog record by ID.
+    Retrieve a single Vehicle record by ID.
 
     Args:
         id (int): The ID of the record.
         db (Session): SQLAlchemy database session.
 
     Returns:
-        dict: The matching Autolog record.
+        dict: The matching Vehicle record.
 
     Raises:
         HTTPException: If the record is not found.
     """
     try:
-        record = db.query(Autolog).filter(Autolog.id == id).first()
+        record = db.query(Vehicle).filter(Vehicle.id == id).first()
         if not record:
-            raise HTTPException(status_code=404, detail=f"Autolog with id {id} not found")
+            raise HTTPException(status_code=404, detail=f"Vehicle with id {id} not found")
         return serialize_sqlalchemy_obj(record)
     except HTTPException:
         raise
@@ -102,32 +102,32 @@ def get_autolog_by_id(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.put("/api/v1/autolog/{id}")
-def update_autolog_full(
+@router.put("/api/v1/Vehicle/{id}")
+def update_vehicle_full(
     id: int,
-    autolog_data: AutologCreate = Body(..., description="Updated data for the record"),
+    vehicle_data: VehicleCreate = Body(..., description="Updated data for the record"),
     db: Session = Depends(get_db)
 ):
     """
-    Fully update an existing Autolog record (all fields required).
+    Fully update an existing Vehicle record (all fields required).
 
     Args:
         id (int): The ID of the record to update.
-        autolog_data (AutologCreate): Updated record data (all fields).
+        vehicle_data (VehicleCreate): Updated record data (all fields).
         db (Session): SQLAlchemy database session.
 
     Returns:
-        dict: The updated Autolog record.
+        dict: The updated Vehicle record.
 
     Raises:
         HTTPException: If the record is not found.
     """
     try:
-        record = db.query(Autolog).filter(Autolog.id == id).first()
+        record = db.query(Vehicle).filter(Vehicle.id == id).first()
         if not record:
-            raise HTTPException(status_code=404, detail=f"Autolog with id {id} not found")
+            raise HTTPException(status_code=404, detail=f"Vehicle with id {id} not found")
 
-        data = autolog_data.model_dump(exclude_unset=False)
+        data = vehicle_data.model_dump(exclude_unset=False)
         for key, value in data.items():
             setattr(record, key, value)
 
@@ -142,32 +142,32 @@ def update_autolog_full(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.patch("/api/v1/autolog/{id}")
-def update_autolog_partial(
+@router.patch("/api/v1/Vehicle/{id}")
+def update_vehicle_partial(
     id: int,
-    autolog_data: AutologCreate = Body(..., description="Partial updated data for the record"),
+    vehicle_data: VehicleCreate = Body(..., description="Partial updated data for the record"),
     db: Session = Depends(get_db)
 ):
     """
-    Partially update an existing Autolog record (only provided fields are updated).
+    Partially update an existing Vehicle record (only provided fields are updated).
 
     Args:
         id (int): The ID of the record to update.
-        Autolog_data (AutologCreate): Partial updated data.
+        vehicle_data (VehicleCreate): Partial updated data.
         db (Session): SQLAlchemy database session.
 
     Returns:
-        dict: The updated Autolog record.
+        dict: The updated Vehicle record.
 
     Raises:
         HTTPException: If the record is not found.
     """
     try:
-        record = db.query(Autolog).filter(Autolog.id == id).first()
+        record = db.query(Vehicle).filter(Vehicle.id == id).first()
         if not record:
-            raise HTTPException(status_code=404, detail=f"Autolog with id {id} not found")
+            raise HTTPException(status_code=404, detail=f"Vehicle with id {id} not found")
 
-        data = autolog_data.model_dump(exclude_unset=True)
+        data = vehicle_data.model_dump(exclude_unset=True)
         for key, value in data.items():
             setattr(record, key, value)
 
@@ -182,10 +182,10 @@ def update_autolog_partial(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/api/v1/autolog/{id}")
-def delete_autolog(id: int, db: Session = Depends(get_db)):
+@router.delete("/api/v1/Vehicle/{id}")
+def delete_vehicle(id: int, db: Session = Depends(get_db)):
     """
-    Delete a Autolog record by ID.
+    Delete a Vehicle record by ID.
 
     Args:
         id (int): The ID of the record to delete.
@@ -198,13 +198,13 @@ def delete_autolog(id: int, db: Session = Depends(get_db)):
         HTTPException: If the record is not found.
     """
     try:
-        record = db.query(Autolog).filter(Autolog.id == id).first()
+        record = db.query(Vehicle).filter(Vehicle.id == id).first()
         if not record:
-            raise HTTPException(status_code=404, detail=f"Autolog with id {id} not found")
+            raise HTTPException(status_code=404, detail=f"Vehicle with id {id} not found")
 
         db.delete(record)
         db.commit()
-        return {"detail": f"Autolog with id {id} deleted successfully"}
+        return {"detail": f"Vehicle with id {id} deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:

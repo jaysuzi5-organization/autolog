@@ -22,8 +22,8 @@ from sqlalchemy import text
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 import framework.db
-from models.autolog import Base
-from api import health, info, autolog
+from models.vehicle import Base
+from api import health, info, vehicle
 
 # Setup logging before anything else uses it
 logger = logging.getLogger(__name__)
