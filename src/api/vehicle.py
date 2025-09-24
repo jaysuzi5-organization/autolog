@@ -19,7 +19,7 @@ def serialize_sqlalchemy_obj(obj):
     return {column.name: getattr(obj, column.name) for column in obj.__table__.columns}
 
 
-@router.get("/api/v1/vehicle")
+@router.get("/api/v1/autolog/vehicle")
 def list_vehicle(
     page: int = Query(1, ge=1, description="Page number to retrieve"),
     limit: int = Query(10, ge=1, le=100, description="Number of records per page"),
@@ -44,7 +44,7 @@ def list_vehicle(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/api/v1/vehicle")
+@router.post("/api/v1/autolog/vehicle")
 def create_record(
     vehicle_data: VehicleCreate = Body(..., description="Data for the new record"),
     db: Session = Depends(get_db)
@@ -76,7 +76,7 @@ def create_record(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/api/v1/vehicle/{id}")
+@router.get("/api/v1/autolog/vehicle/{id}")
 def get_vehicle_by_id(id: int, db: Session = Depends(get_db)):
     """
     Retrieve a single Vehicle record by ID.
@@ -102,7 +102,7 @@ def get_vehicle_by_id(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.put("/api/v1/vehicle/{id}")
+@router.put("/api/v1/autolog/vehicle/{id}")
 def update_vehicle_full(
     id: int,
     vehicle_data: VehicleCreate = Body(..., description="Updated data for the record"),
@@ -142,7 +142,7 @@ def update_vehicle_full(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.patch("/api/v1/vehicle/{id}")
+@router.patch("/api/v1/autolog/vehicle/{id}")
 def update_vehicle_partial(
     id: int,
     vehicle_data: VehicleCreate = Body(..., description="Partial updated data for the record"),
@@ -182,7 +182,7 @@ def update_vehicle_partial(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/api/v1/vehicle/{id}")
+@router.delete("/api/v1/autolog/vehicle/{id}")
 def delete_vehicle(id: int, db: Session = Depends(get_db)):
     """
     Delete a Vehicle record by ID.
