@@ -120,7 +120,7 @@ def init_db(database_url: str = None, **engine_kwargs):
             autoflush=False,
             bind=engine
         )
-        import models.vehichle
+        import models.vehicle
         Base.metadata.create_all(engine)
         logger.info("Database initialized successfully")
 
