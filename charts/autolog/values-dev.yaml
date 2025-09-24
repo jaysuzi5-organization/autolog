@@ -4,4 +4,4 @@ resources:
     cpu: 40m
     memory: 40M
 image:
-  tag: 16cfd3
+  tag: e2af30
