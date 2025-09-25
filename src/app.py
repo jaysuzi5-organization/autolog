@@ -21,27 +21,20 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
-import framework.db
-from models.vehicle import Base
+from framework.db import Database
+from models.base import Base
 from api import health, info, vehicle
 
 # Setup logging before anything else uses it
 logger = logging.getLogger(__name__)
 
-if os.getenv("TESTING") != "true":
-    from framework.middleware import LoggingMiddleware
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    app_middleware = [LoggingMiddleware]
-    otel_enabled = True
-else:
-    # Basic logging when running tests (no OTEL or custom middleware)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    app_middleware = []
-    otel_enabled = False
-
+from framework.middleware import LoggingMiddleware
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+app_middleware = [LoggingMiddleware]
+otel_enabled = True
+max_retries = 5
+retry_delay = 2
+database = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,28 +56,33 @@ async def lifespan(app: FastAPI):
     Yields:
         None: Control is returned to the application after startup logic completes.
     """
-    max_retries = 5
-    retry_delay = 2
 
-    if os.getenv("TESTING") != "true":
-        for attempt in range(max_retries):
-            try:
-                logger.info(f"Attempting database connection (attempt {attempt + 1}/{max_retries})")
-                framework.db.init_db()
-                Base.metadata.create_all(bind=framework.db.engine)
-                with framework.db.SessionLocal() as session:
-                    session.execute(text("SELECT 1"))
-                logger.info("Database connection established successfully")
-                break
-            except Exception as e:
-                logger.error(f"Database connection failed: {str(e)}")
-                if attempt == max_retries - 1:
-                    logger.error("Max retries reached, failing startup")
-                    raise
-                sleep(retry_delay)
+    global database
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempting database connection (attempt {attempt + 1}/{max_retries})")
+            database = Database(Base)
+            session = database.get_session()
+            session.execute(text("SELECT 1"))
+            session.close()
+            logger.info("Database connection established successfully")
+            break
+        except Exception as e:
+            logger.error(f"Database connection failed: {str(e)}")
+            if attempt == max_retries - 1:
+                logger.error("Max retries reached, failing startup")
+                raise
+            sleep(retry_delay)
 
-    yield
-
+def get_db():
+    if database:
+        db = database.get_session()
+        try:
+            yield db
+        finally:
+            db.close()
+    else:
+        yield None
 
 app = FastAPI(
     title="Autolog API",

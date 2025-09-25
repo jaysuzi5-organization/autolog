@@ -22,139 +22,83 @@ Environment Variables for Testing:
 """
 
 import os
-from sqlalchemy.orm import declarative_base, sessionmaker
+import importlib.util
+from sqlalchemy.orm import  sessionmaker
 from sqlalchemy import create_engine
-from typing import Optional, Any
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Global SQLAlchemy declarative base for ORM models
-Base = declarative_base()
+class Database:
+    # Accept Base as an argument during initialization
+    def __init__(self, base, model_paths: str = None, database_url: str = None):
+        self._base = base
+        self._engine = None
+        self._set_engine(database_url)
+        self._session = sessionmaker(bind=self._engine)
+        self.model_paths = model_paths if model_paths is not None else []
 
-# Session factory and engine references
-SessionLocal: Optional[sessionmaker] = None
-engine: Optional[Any] = None
+        # If models dynamically
+        self._import_models()
+        self._base.metadata.create_all(self._engine)
 
+    def get_session(self):
+        return self._session()
 
-def init_db(database_url: str = None, **engine_kwargs):
-    """
-    Initialize the database connection and create a session factory.
+    def _set_engine(self, database_url: str):
+        if not database_url:
+            required_keys = {
+                "POSTGRES_USER": None,
+                "POSTGRES_PASSWORD": None,
+                "POSTGRES_HOST": None,
+                "POSTGRES_PORT": None,
+                "POSTGRES_DB": None
+            }
 
-    This function:
-    - Reads database configuration from environment variables if `database_url` is not provided.
-    - Creates an SQLAlchemy engine with appropriate connection pooling.
-    - Configures `SessionLocal` for use in request-scoped database sessions.
+            missing_vars = []
+            for key in required_keys:
+                value = os.getenv(key)
+                if not value:
+                    missing_vars.append(key)
+                required_keys[key] = value
 
-    Args:
-        database_url (str, optional):
-            Full database connection string. If omitted, values are read from environment variables.
-        **engine_kwargs:
-            Additional keyword arguments passed to `create_engine()`.
-
-    Raises:
-        EnvironmentError:
-            If required environment variables are missing for production configuration.
-        Exception:
-            For any other error during database initialization.
-
-    Example:
-        >>> init_db()
-        >>> from framework.db import SessionLocal
-        >>> session = SessionLocal()
-    """
-    global SessionLocal, engine
-
-    try:
-        if database_url is None:
-            database_url = os.getenv("DATABASE_URL")
-            if database_url is None:
-                # Production configuration from env vars
-                required_keys = {
-                    "POSTGRES_USER": None,
-                    "POSTGRES_PASSWORD": None,
-                    "POSTGRES_HOST": None,
-                    "POSTGRES_PORT": None,
-                    "POSTGRES_DB": None
-                }
-
-                missing_vars = []
-                for key in required_keys:
-                    value = os.getenv(key)
-                    if not value:
-                        missing_vars.append(key)
-                    required_keys[key] = value
-
-                if missing_vars:
-                    raise EnvironmentError(
-                        f"Missing required environment variables: {', '.join(missing_vars)}"
-                    )
-
-                database_url = (
-                    f"postgresql+psycopg2://{required_keys['POSTGRES_USER']}:"
-                    f"{required_keys['POSTGRES_PASSWORD']}@"
-                    f"{required_keys['POSTGRES_HOST']}:"
-                    f"{required_keys['POSTGRES_PORT']}/"
-                    f"{required_keys['POSTGRES_DB']}"
+            if missing_vars:
+                raise EnvironmentError(
+                    f"Missing required environment variables: {', '.join(missing_vars)}"
                 )
 
-                # Default production pool config
-                pool_config = {
-                    "pool_pre_ping": True,
-                    "pool_size": int(os.getenv("DB_POOL_SIZE", 10)),
-                    "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", 20)),
-                    "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", 3600))
-                }
-                pool_config.update(engine_kwargs)
-            else:
-                # Testing: use DATABASE_URL as is
-                pool_config = engine_kwargs
-        else:
-            # Explicit database URL provided
-            pool_config = engine_kwargs
-
-        logger.info(f"Initializing database with URL: {database_url.split('@')[0]}...@...")  # Mask password
-        engine = create_engine(database_url, **pool_config)
-        SessionLocal = sessionmaker(
-            autocommit=False,
-            autoflush=False,
-            bind=engine
-        )
-        import models.vehicle
-        Base.metadata.create_all(engine)
-        logger.info("Database initialized successfully")
-
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {str(e)}")
-        raise
+            database_url = (
+                f"postgresql+psycopg2://{required_keys['POSTGRES_USER']}:"
+                f"{required_keys['POSTGRES_PASSWORD']}@"
+                f"{required_keys['POSTGRES_HOST']}:"
+                f"{required_keys['POSTGRES_PORT']}/"
+                f"{required_keys['POSTGRES_DB']}"
+            )
+        self.engine = create_engine(database_url)
 
 
-def get_db():
-    """
-    Dependency function for FastAPI to get a database session.
-
-    This function is designed for use in FastAPI routes:
-    - Yields a database session bound to the current request.
-    - Ensures the session is closed after the request finishes.
-
-    Yields:
-        sqlalchemy.orm.Session: A SQLAlchemy session object.
-
-    Raises:
-        RuntimeError:
-            If the database has not been initialized via `init_db()`.
-
-    Example:
-        >>> from fastapi import Depends
-        >>> @app.get("/items/")
-        ... def read_items(db: Session = Depends(get_db)):
-        ...     return db.query(Item).all()
-    """
-    if SessionLocal is None:
-        raise RuntimeError("Database not initialized. Call init_db() first.")
-
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    def _import_models(self):
+        """
+        Dynamically imports all Python files from the specified model paths
+        to ensure all Base-derived models are registered.
+        This method uses the Base instance provided during Database initialization.
+        """
+        if not self.model_paths:
+            return
+        for model_dir_path in self.model_paths:
+            # For simplicity, we assume model_dir_path is directly importable or an absolute path
+            if not os.path.isdir(model_dir_path):
+                print(f"Warning: Model path '{model_dir_path}' not found. Skipping dynamic load.")
+                continue
+            for filename in os.listdir(model_dir_path):
+                if filename.endswith(".py") and filename != "__init__.py":
+                    module_name = filename[:-3] # Remove .py extension
+                    module_full_path = os.path.join(model_dir_path, filename)
+                    try:
+                        # Construct a unique module name to avoid conflicts if same filename exists elsewhere
+                        spec = importlib.util.spec_from_file_location(f"dynamic_model_{module_name}", module_full_path)
+                        if spec is not None:
+                            module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(module)
+                    except Exception as e:
+                        print(f"Error importing model module {filename} from {model_dir_path}: {e}")

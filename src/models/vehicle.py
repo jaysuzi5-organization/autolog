@@ -10,10 +10,11 @@ will be defined separately and related back to this Vehicle.
 """
 
 from sqlalchemy import Column, Date, DateTime, Float, Integer, String
-from framework.db import Base
 from datetime import datetime, UTC
 from pydantic import BaseModel
 from typing import Optional, List
+from .base import Base
+from .gas import GasRead
 
 
 class Vehicle(Base):
@@ -56,36 +57,6 @@ class Vehicle(Base):
 
 # ---------- Pydantic Schemas ----------
 
-# Lightweight references to related models
-class InsuranceEntry(BaseModel):
-    date: datetime
-    cost: float
-    notes: Optional[str] = None
-
-
-class RegistrationEntry(BaseModel):
-    date: datetime
-    cost: float
-    notes: Optional[str] = None
-
-
-class MaintenanceEntry(BaseModel):
-    date: datetime
-    odometer: int
-    cost: float
-    notes: Optional[str] = None
-
-
-class GasEntry(BaseModel):
-    date: datetime
-    odometer: int
-    gallons: Optional[float] = None
-    cost: Optional[float] = None
-    mpg: Optional[float] = None
-    milesDriven: Optional[int] = None
-    costPerGallon: Optional[float] = None
-
-
 class VehicleCreate(BaseModel):
     year: int
     make: str
@@ -103,11 +74,30 @@ class VehicleCreate(BaseModel):
     sold_price: Optional[float] = None
     sold_odometer: Optional[int] = None
 
-    # Lists of related entries
-    insurance: List[InsuranceEntry] = []
-    registration: List[RegistrationEntry] = []
-    maintenance: List[MaintenanceEntry] = []
-    gas: List[GasEntry] = []
+    class Config:
+        orm_mode = True
+
+
+class VehicleRead(BaseModel):
+    id: int
+    year: int
+    make: str
+    model: str
+    color: Optional[str]
+    vin_number: Optional[str]
+    license_plate_number: Optional[str]
+    registration_number: Optional[str]
+    state: Optional[str]
+    purchased_date: Optional[datetime]
+    purchased_price: Optional[float]
+    purchased_odometer: Optional[int]
+    dealer_name: Optional[str]
+    sold_date: Optional[datetime]
+    sold_price: Optional[float]
+    sold_odometer: Optional[int]
+
+    # 🔹 Related entries (optional)
+    gas: List[GasRead] = []  # only returned when explicitly included
 
     class Config:
         orm_mode = True
