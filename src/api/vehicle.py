@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
-from app import get_db
+from dependencies import get_db
 from models.vehicle import Vehicle, VehicleCreate
 from datetime import datetime, UTC
 
