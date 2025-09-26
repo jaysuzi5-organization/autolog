@@ -69,11 +69,11 @@ class GasBase(BaseModel):
     gallons: Optional[float] = None
     cost: Optional[float] = None
     mpg: Optional[float] = None
-    milesDriven: Optional[int] = None
-    costPerGallon: Optional[float] = None
-    kWhPerMile: Optional[float] = None
-    milesPerKWh: Optional[float] = None
-    costPerKWh: Optional[float] = None
+    miles_driven: Optional[int] = None
+    cost_per_gallon: Optional[float] = None
+    kwh_per_mile: Optional[float] = None
+    miles_per_kwh: Optional[float] = None
+    cost_per_kwh: Optional[float] = None
 
 
 class GasCreate(GasBase):

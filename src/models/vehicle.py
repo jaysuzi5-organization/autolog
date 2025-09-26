@@ -29,7 +29,7 @@ class Vehicle(Base):
     make = Column(String(50), nullable=False)
     model = Column(String(50), nullable=False)
     color = Column(String(30), nullable=True)
-    vin_number = Column(String(50), nullable=True, unique=True)
+    vin_number = Column(String(50), nullable=True)
     license_plate_number = Column(String(20), nullable=True)
     registration_number = Column(String(50), nullable=True)
     state = Column(String(20), nullable=True)
