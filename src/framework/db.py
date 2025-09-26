@@ -74,7 +74,7 @@ class Database:
                 f"{required_keys['POSTGRES_PORT']}/"
                 f"{required_keys['POSTGRES_DB']}"
             )
-        self.engine = create_engine(database_url)
+        self._engine = create_engine(database_url)
 
 
     def _import_models(self):
