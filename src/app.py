@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 from framework.middleware import LoggingMiddleware
 
-
 app = FastAPI(
     title="Autolog API",
     version="1.0.0",
