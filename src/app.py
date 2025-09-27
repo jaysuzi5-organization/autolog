@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from api import health, info, vehicle, gas
+from api import health, info, vehicle, gas, insurance
 from dependencies import setup_db
 
 # Setup logging before anything else uses it
@@ -26,4 +26,5 @@ app.include_router(health.router, tags=["Health"])
 app.include_router(info.router, tags=["Info"])
 app.include_router(vehicle.router, tags=["vehicle"])
 app.include_router(gas.router, tags=["gas"])
+app.include_router(insurance.router, tags=["insurance"])
 app.mount("/autolog/test", StaticFiles(directory="static", html=True), name="test")
