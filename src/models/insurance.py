@@ -12,7 +12,6 @@ from sqlalchemy import Column, Date, DateTime, Float, Integer, String, ForeignKe
 from sqlalchemy.orm import relationship
 from datetime import datetime, UTC
 from pydantic import BaseModel
-from typing import Optional
 from .base import Base
 
 
