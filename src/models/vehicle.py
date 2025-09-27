@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from .base import Base
 from .gas import GasRead
+from .insurance import InsuranceRead
 
 
 class Vehicle(Base):
@@ -95,9 +96,8 @@ class VehicleRead(BaseModel):
     sold_date: Optional[datetime]
     sold_price: Optional[float]
     sold_odometer: Optional[int]
-
-    # 🔹 Related entries (optional)
-    gas: List[GasRead] = []  # only returned when explicitly included
+    gas: List[GasRead] = []                 # only returned when explicitly included
+    insurance: List[InsuranceRead] = []     # only returned when explicitly included
 
     class Config:
         orm_mode = True
